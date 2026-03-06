@@ -16,8 +16,3 @@
 > * Improved multi-touch 
 > * Support for the kick button 
 > * Compatibility with SA:MP 0.3.7
-
-# ᐳ Credit's
-> - **x1y2z** — main author of client 
-> - [**kuzia15**](https://github.com/kuzia15) — OpenGL, WaterShader, small improvements
-> - [**psychobye**](https://github.com/psychobye) — CSkyBox, small improvements
