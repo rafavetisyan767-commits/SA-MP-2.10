@@ -21,17 +21,31 @@ jobs:
 
       - name: Auto-Configure KTA Games
         run: |
-          # 1. Исправляем ошибку с отсутствующим файлом (создаем заглушку)
+          # 1. Создаём playerTabList.h с реальным классом
           mkdir -p app/src/main/cpp/samp/gui/samp_widgets
-          touch app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h
-          
-          # 2. Замена IP
-          find . -type f -name "*.h" -o -name "*.cpp" | xargs sed -i 's/127.0.0.1/141.94.184.104/g'
-          
-          # 3. Замена порта
-          find . -type f -name "*.h" -o -name "*.cpp" | xargs sed -i 's/7777/1341/g'
-          
-          # 4. Замена названия
+          cat > app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h << 'EOF'
+          #pragma once
+          #include <string>
+          #include <vector>
+
+          class PlayerTabList {
+          public:
+              PlayerTabList() {}
+              ~PlayerTabList() {}
+              void render() {}
+              void toggle() {}
+              bool isVisible() const { return false; }
+              void setVisible(bool v) {}
+          };
+          EOF
+
+          # 2. Замена IP (с экранированием точек)
+          find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/127\.0\.0\.1/141.94.184.104/g'
+
+          # 3. Замена порта (только точное число)
+          find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/\b7777\b/1341/g'
+
+          # 4. Замена названия в strings.xml
           if [ -f app/src/main/res/values/strings.xml ]; then
             sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
           fi
