@@ -21,7 +21,19 @@ jobs:
 
       - name: Auto-Configure KTA Games
         run: |
-          # 1. Создаём playerTabList.h — visible как метод
+          # 1. Показываем реальную структуру vendor
+          echo "=== vendor dir ==="
+          ls app/src/main/cpp/samp/vendor/ 2>/dev/null || echo "vendor not found"
+          echo "=== RakNet dir ==="
+          ls app/src/main/cpp/samp/vendor/RakNet/ 2>/dev/null || echo "RakNet not found"
+          echo "=== voice_new dir ==="
+          ls app/src/main/cpp/samp/voice_new/ 2>/dev/null || echo "voice_new not found"
+          echo "=== Network.h line 79 ==="
+          sed -n '70,90p' app/src/main/cpp/samp/voice_new/Network.h 2>/dev/null || echo "Network.h not found"
+          echo "=== gui.cpp lines 78-85 ==="
+          sed -n '78,85p' app/src/main/cpp/samp/gui/gui.cpp 2>/dev/null || echo "gui.cpp not found"
+
+          # 2. Создаём playerTabList.h с полным набором методов UI виджета
           mkdir -p app/src/main/cpp/samp/gui/samp_widgets
           cat > app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h << 'EOF'
           #pragma once
@@ -31,6 +43,8 @@ jobs:
           class PlayerTabList {
           private:
               bool m_visible = false;
+              float m_minW = 0, m_minH = 0;
+              float m_maxW = 9999, m_maxH = 9999;
           public:
               PlayerTabList() {}
               ~PlayerTabList() {}
@@ -41,96 +55,35 @@ jobs:
               bool visible() const { return m_visible; }
               bool isVisible() const { return m_visible; }
               void setVisible(bool v) { m_visible = v; }
+              void addChild(void* child) {}
+              void setMinSize(float w, float h) { m_minW = w; m_minH = h; }
+              void setMaxSize(float w, float h) { m_maxW = w; m_maxH = h; }
+              void setSize(float w, float h) {}
+              void setPos(float x, float y) {}
+              void update() {}
           };
           EOF
 
-          # 2. Исправляем RGBA.h
+          # 3. Исправляем RGBA.h
           RGBA_DIR="app/src/main/cpp/samp/game"
           if [ -f "$RGBA_DIR/rgba.h" ] && [ ! -f "$RGBA_DIR/RGBA.h" ]; then
             cp "$RGBA_DIR/rgba.h" "$RGBA_DIR/RGBA.h"
           fi
 
-          # 3. Создаём весь RakNet с нуля (submodule не подтягивается)
-          RAKNET_DIR="app/src/main/cpp/samp/vendor/RakNet"
-          mkdir -p "$RAKNET_DIR"
+          # 4. Исправляем INVALID_SOCKET в Network.h
+          NETWORK_H="app/src/main/cpp/samp/voice_new/Network.h"
+          if [ -f "$NETWORK_H" ]; then
+            grep -q "INVALID_SOCKET" "$NETWORK_H" && \
+            sed -i '1s/^/#ifndef INVALID_SOCKET\n#define INVALID_SOCKET (-1)\n#endif\n/' "$NETWORK_H"
+          fi
 
-          cat > "$RAKNET_DIR/BitStream.h" << 'EOF'
-          #pragma once
-          #include <cstdint>
-          #include <cstring>
-          #include <stdlib.h>
-          namespace RakNet {
-              class BitStream {
-              public:
-                  BitStream() {}
-                  BitStream(unsigned char* data, unsigned int lengthInBytes, bool copyData) {}
-                  ~BitStream() {}
-                  void Reset() {}
-                  void Write(bool val) {}
-                  void Write(unsigned char val) {}
-                  void Write(int val) {}
-                  void Write(unsigned int val) {}
-                  void Write(float val) {}
-                  void Write(const char* val) {}
-                  bool Read(bool &val) { return false; }
-                  bool Read(unsigned char &val) { return false; }
-                  bool Read(int &val) { return false; }
-                  bool Read(unsigned int &val) { return false; }
-                  bool Read(float &val) { return false; }
-                  unsigned int GetNumberOfBitsUsed() const { return 0; }
-                  unsigned int GetNumberOfBytesUsed() const { return 0; }
-                  unsigned char* GetData() const { return nullptr; }
-              };
-          }
-          EOF
-
-          cat > "$RAKNET_DIR/RakClient.h" << 'EOF'
-          #pragma once
-          #include "BitStream.h"
-          namespace RakNet {
-              class RakClient {
-              public:
-                  RakClient() {}
-                  ~RakClient() {}
-                  bool Connect(const char* host, unsigned short port, unsigned short clientPort, unsigned int depreciated, int threadSleepTimer) { return false; }
-                  void Disconnect(unsigned int blockDuration) {}
-                  bool IsConnected() const { return false; }
-                  bool Send(BitStream* bitStream, int priority, int reliability, char orderingChannel) { return false; }
-                  bool Send(const char* data, const int length, int priority, int reliability, char orderingChannel) { return false; }
-              };
-          }
-          EOF
-
-          cat > "$RAKNET_DIR/RakPeerInterface.h" << 'EOF'
-          #pragma once
-          #include "BitStream.h"
-          namespace RakNet {
-              class RakPeerInterface {
-              public:
-                  RakPeerInterface() {}
-                  virtual ~RakPeerInterface() {}
-              };
-          }
-          EOF
-
-          cat > "$RAKNET_DIR/NetworkIDObject.h" << 'EOF'
-          #pragma once
-          namespace RakNet {
-              class NetworkIDObject {
-              public:
-                  NetworkIDObject() {}
-                  virtual ~NetworkIDObject() {}
-              };
-          }
-          EOF
-
-          # 4. Замена IP
+          # 5. Замена IP
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/127\.0\.0\.1/141.94.184.104/g'
 
-          # 5. Замена порта (только точное число)
+          # 6. Замена порта (только точное число)
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/\b7777\b/1341/g'
 
-          # 6. Замена названия в strings.xml
+          # 7. Замена названия в strings.xml
           if [ -f app/src/main/res/values/strings.xml ]; then
             sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
           fi
