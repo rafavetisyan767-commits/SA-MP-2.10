@@ -21,7 +21,7 @@ jobs:
 
       - name: Auto-Configure KTA Games
         run: |
-          # 1. Создаём playerTabList.h с реальным классом
+          # 1. Создаём playerTabList.h с полным классом
           mkdir -p app/src/main/cpp/samp/gui/samp_widgets
           cat > app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h << 'EOF'
           #pragma once
@@ -34,18 +34,26 @@ jobs:
               ~PlayerTabList() {}
               void render() {}
               void toggle() {}
+              void show() {}
+              void hide() {}
               bool isVisible() const { return false; }
               void setVisible(bool v) {}
           };
           EOF
 
-          # 2. Замена IP (с экранированием точек)
+          # 2. Исправляем RGBA.h — создаём копию с заглавными буквами
+          RGBA_DIR="app/src/main/cpp/samp/game"
+          if [ -f "$RGBA_DIR/rgba.h" ] && [ ! -f "$RGBA_DIR/RGBA.h" ]; then
+            cp "$RGBA_DIR/rgba.h" "$RGBA_DIR/RGBA.h"
+          fi
+
+          # 3. Замена IP
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/127\.0\.0\.1/141.94.184.104/g'
 
-          # 3. Замена порта (только точное число)
+          # 4. Замена порта (только точное число)
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/\b7777\b/1341/g'
 
-          # 4. Замена названия в strings.xml
+          # 5. Замена названия в strings.xml
           if [ -f app/src/main/res/values/strings.xml ]; then
             sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
           fi
