@@ -1,0 +1,41 @@
+name: Build_64bit_KTA_Games
+
+on:
+  workflow_dispatch: # Запуск кнопкой вручную
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Auto-Configure KTA Games
+        run: |
+          # Замена стандартного IP на твой
+          find . -type f -name "*.h" -o -name "*.cpp" | xargs sed -i 's/127.0.0.1/141.94.184.104/g'
+          
+          # Замена стандартного порта на твой
+          find . -type f -name "*.h" -o -name "*.cpp" | xargs sed -i 's/7777/1341/g'
+          
+          # Замена названия приложения в системе
+          sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KTA_Games_64bit
+          path: app/build/outputs/apk/debug/*.apk
