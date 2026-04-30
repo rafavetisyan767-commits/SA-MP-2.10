@@ -21,19 +21,7 @@ jobs:
 
       - name: Auto-Configure KTA Games
         run: |
-          # 1. Показываем реальную структуру vendor
-          echo "=== vendor dir ==="
-          ls app/src/main/cpp/samp/vendor/ 2>/dev/null || echo "vendor not found"
-          echo "=== RakNet dir ==="
-          ls app/src/main/cpp/samp/vendor/RakNet/ 2>/dev/null || echo "RakNet not found"
-          echo "=== voice_new dir ==="
-          ls app/src/main/cpp/samp/voice_new/ 2>/dev/null || echo "voice_new not found"
-          echo "=== Network.h line 79 ==="
-          sed -n '70,90p' app/src/main/cpp/samp/voice_new/Network.h 2>/dev/null || echo "Network.h not found"
-          echo "=== gui.cpp lines 78-85 ==="
-          sed -n '78,85p' app/src/main/cpp/samp/gui/gui.cpp 2>/dev/null || echo "gui.cpp not found"
-
-          # 2. Создаём playerTabList.h с полным набором методов UI виджета
+          # 1. Создаём playerTabList.h
           mkdir -p app/src/main/cpp/samp/gui/samp_widgets
           cat > app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h << 'EOF'
           #pragma once
@@ -55,7 +43,6 @@ jobs:
               bool visible() const { return m_visible; }
               bool isVisible() const { return m_visible; }
               void setVisible(bool v) { m_visible = v; }
-              void addChild(void* child) {}
               void setMinSize(float w, float h) { m_minW = w; m_minH = h; }
               void setMaxSize(float w, float h) { m_maxW = w; m_maxH = h; }
               void setSize(float w, float h) {}
@@ -64,17 +51,77 @@ jobs:
           };
           EOF
 
-          # 3. Исправляем RGBA.h
+          # 2. Создаём RakNet/BitStream.h — папки нет в репо, создаём вручную
+          mkdir -p app/src/main/cpp/samp/vendor/RakNet
+          cat > app/src/main/cpp/samp/vendor/RakNet/BitStream.h << 'EOF'
+          #pragma once
+          #include <cstdint>
+          #include <cstring>
+
+          namespace RakNet {
+              class BitStream {
+              public:
+                  BitStream() {}
+                  BitStream(unsigned char* data, unsigned int lengthInBytes, bool copyData) {}
+                  ~BitStream() {}
+                  void Reset() {}
+                  void Write(bool val) {}
+                  void Write(unsigned char val) {}
+                  void Write(int val) {}
+                  void Write(unsigned int val) {}
+                  void Write(float val) {}
+                  void Write(const char* val, int len) {}
+                  bool Read(bool &val) { val = false; return false; }
+                  bool Read(unsigned char &val) { val = 0; return false; }
+                  bool Read(int &val) { val = 0; return false; }
+                  bool Read(unsigned int &val) { val = 0; return false; }
+                  bool Read(float &val) { val = 0.0f; return false; }
+                  unsigned int GetNumberOfBitsUsed() const { return 0; }
+                  unsigned int GetNumberOfBytesUsed() const { return 0; }
+                  unsigned char* GetData() const { return nullptr; }
+                  void SetWriteOffset(unsigned int offset) {}
+                  void SetReadOffset(unsigned int offset) {}
+                  unsigned int GetReadOffset() const { return 0; }
+                  unsigned int GetWriteOffset() const { return 0; }
+              };
+          }
+          EOF
+
+          # 3. Создаём остальные часто используемые RakNet заглушки
+          cat > app/src/main/cpp/samp/vendor/RakNet/RakNetTypes.h << 'EOF'
+          #pragma once
+          #include <cstdint>
+          namespace RakNet {
+              typedef uint64_t RakNetGUID;
+              typedef unsigned short SystemIndex;
+              struct SystemAddress {
+                  char ToString() const { return 0; }
+              };
+              struct Packet {
+                  unsigned char* data;
+                  unsigned int length;
+                  SystemAddress systemAddress;
+              };
+          }
+          EOF
+
+          cat > app/src/main/cpp/samp/vendor/RakNet/RakPeerInterface.h << 'EOF'
+          #pragma once
+          #include "BitStream.h"
+          #include "RakNetTypes.h"
+          namespace RakNet {
+              class RakPeerInterface {
+              public:
+                  static RakPeerInterface* GetInstance() { return nullptr; }
+                  virtual ~RakPeerInterface() {}
+              };
+          }
+          EOF
+
+          # 4. Исправляем RGBA.h
           RGBA_DIR="app/src/main/cpp/samp/game"
           if [ -f "$RGBA_DIR/rgba.h" ] && [ ! -f "$RGBA_DIR/RGBA.h" ]; then
             cp "$RGBA_DIR/rgba.h" "$RGBA_DIR/RGBA.h"
-          fi
-
-          # 4. Исправляем INVALID_SOCKET в Network.h
-          NETWORK_H="app/src/main/cpp/samp/voice_new/Network.h"
-          if [ -f "$NETWORK_H" ]; then
-            grep -q "INVALID_SOCKET" "$NETWORK_H" && \
-            sed -i '1s/^/#ifndef INVALID_SOCKET\n#define INVALID_SOCKET (-1)\n#endif\n/' "$NETWORK_H"
           fi
 
           # 5. Замена IP
