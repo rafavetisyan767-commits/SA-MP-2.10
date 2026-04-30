@@ -30,14 +30,16 @@ jobs:
 
           class PlayerTabList {
           public:
+              bool visible = false;
+
               PlayerTabList() {}
               ~PlayerTabList() {}
               void render() {}
               void toggle() {}
-              void show() {}
-              void hide() {}
-              bool isVisible() const { return false; }
-              void setVisible(bool v) {}
+              void show() { visible = true; }
+              void hide() { visible = false; }
+              bool isVisible() const { return visible; }
+              void setVisible(bool v) { visible = v; }
           };
           EOF
 
@@ -47,13 +49,35 @@ jobs:
             cp "$RGBA_DIR/rgba.h" "$RGBA_DIR/RGBA.h"
           fi
 
-          # 3. Замена IP
+          # 3. Создаём заглушку BitStream.h если submodule не подтянулся
+          RAKNET_DIR="app/src/main/cpp/samp/vendor/RakNet"
+          if [ ! -f "$RAKNET_DIR/BitStream.h" ]; then
+            mkdir -p "$RAKNET_DIR"
+            cat > "$RAKNET_DIR/BitStream.h" << 'BSEOF'
+          #pragma once
+          #include <cstdint>
+          #include <cstring>
+          namespace RakNet {
+              class BitStream {
+              public:
+                  BitStream() {}
+                  ~BitStream() {}
+                  void Reset() {}
+                  unsigned int GetNumberOfBitsUsed() const { return 0; }
+                  unsigned int GetNumberOfBytesUsed() const { return 0; }
+                  const char* GetData() const { return nullptr; }
+              };
+          }
+          BSEOF
+          fi
+
+          # 4. Замена IP
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/127\.0\.0\.1/141.94.184.104/g'
 
-          # 4. Замена порта (только точное число)
+          # 5. Замена порта (только точное число)
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/\b7777\b/1341/g'
 
-          # 5. Замена названия в strings.xml
+          # 6. Замена названия в strings.xml
           if [ -f app/src/main/res/values/strings.xml ]; then
             sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
           fi
