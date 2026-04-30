@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive # ЭТА СТРОЧКА ДОКАЧАЕТ НЕДОСТАЮЩИЕ ФАЙЛЫ
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -26,7 +28,9 @@ jobs:
           find . -type f -name "*.h" -o -name "*.cpp" | xargs sed -i 's/7777/1341/g'
           
           # Замена названия приложения в системе
-          sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
+          if [ -f app/src/main/res/values/strings.xml ]; then
+            sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
+          fi
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
