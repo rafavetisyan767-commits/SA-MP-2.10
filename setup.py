@@ -14,15 +14,46 @@ def prepend(path, content):
         with open(path, 'w') as f:
             f.write(content + original)
 
-# 1. Добавляем #pragma once в BitStream.h если его нет
-prepend("app/src/main/cpp/samp/vendor/RakNet/BitStream.h",
-    "#pragma once\n")
+# 1. BitStream.h — всегда создаём с ifndef guard (не pragma once!)
+write("app/src/main/cpp/samp/vendor/RakNet/BitStream.h", """
+#ifndef RAKNET_BITSTREAM_H
+#define RAKNET_BITSTREAM_H
+#include <cstdint>
+#include <cstring>
+namespace RakNet {
+    class BitStream {
+    public:
+        BitStream(){}
+        BitStream(unsigned char* data,unsigned int len,bool copy){}
+        ~BitStream(){}
+        void Reset(){}
+        void Write(bool v){}
+        void Write(unsigned char v){}
+        void Write(int v){}
+        void Write(unsigned int v){}
+        void Write(float v){}
+        void Write(const char* v,int len){}
+        bool Read(bool &v){v=false;return false;}
+        bool Read(unsigned char &v){v=0;return false;}
+        bool Read(int &v){v=0;return false;}
+        bool Read(unsigned int &v){v=0;return false;}
+        bool Read(float &v){v=0.0f;return false;}
+        unsigned int GetNumberOfBitsUsed() const {return 0;}
+        unsigned int GetNumberOfBytesUsed() const {return 0;}
+        unsigned char* GetData() const {return nullptr;}
+        void SetWriteOffset(unsigned int o){}
+        void SetReadOffset(unsigned int o){}
+        unsigned int GetReadOffset() const {return 0;}
+        unsigned int GetWriteOffset() const {return 0;}
+    };
+}
+#endif
+""")
 
-# 2. RakClient.h только если нет
-rc_path = "app/src/main/cpp/samp/vendor/RakNet/RakClient.h"
-if not os.path.exists(rc_path):
-    write(rc_path, """
-#pragma once
+# 2. RakClient.h
+write("app/src/main/cpp/samp/vendor/RakNet/RakClient.h", """
+#ifndef RAKNET_RAKCLIENT_H
+#define RAKNET_RAKCLIENT_H
 #include "BitStream.h"
 namespace RakNet {
     class RakClient {
@@ -36,11 +67,13 @@ namespace RakNet {
         bool Send(const char* d,int l,int p,int r,char o){return false;}
     };
 }
+#endif
 """)
 
 # 3. PlayerTabList наследуется от Widget
 write("app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h", """
-#pragma once
+#ifndef SAMP_PLAYERTABLIST_H
+#define SAMP_PLAYERTABLIST_H
 #include "../widget.h"
 
 class PlayerTabList : public Widget {
@@ -57,6 +90,7 @@ public:
     bool isVisible() const { return m_visible; }
     void setVisible(bool v) { m_visible = v; }
 };
+#endif
 """)
 
 # 4. INVALID_SOCKET в Network.h
