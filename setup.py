@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, re
 
 def write(path, content):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -14,8 +14,19 @@ def prepend(path, content):
         with open(path, 'w') as f:
             f.write(content + original)
 
-# 1. BitStream.h — всегда создаём с ifndef guard (не pragma once!)
-write("app/src/main/cpp/samp/vendor/RakNet/BitStream.h", """
+def patch_network_h(path):
+    if not os.path.exists(path):
+        print(f"Network.h not found at {path}")
+        return
+    with open(path, 'r') as f:
+        content = f.read()
+    # Убираем include RakNet/BitStream.h
+    content = re.sub(r'#include\s*["\'].*RakNet/BitStream\.h["\']', '', content)
+    content = re.sub(r'#include\s*<.*RakNet/BitStream\.h>', '', content)
+    # Добавляем всё нужное в начало
+    header = """#ifndef INVALID_SOCKET
+#define INVALID_SOCKET (-1)
+#endif
 #ifndef RAKNET_BITSTREAM_H
 #define RAKNET_BITSTREAM_H
 #include <cstdint>
@@ -48,14 +59,26 @@ namespace RakNet {
     };
 }
 #endif
-""")
+"""
+    with open(path, 'w') as f:
+        f.write(header + content)
+    print(f"Patched {path}")
 
-# 2. RakClient.h
+# 1. Патчим Network.h — убираем include BitStream и вставляем класс прямо туда
+patch_network_h("app/src/main/cpp/samp/voice_new/Network.h")
+
+# 2. Удаляем наш BitStream.h если создали раньше (он конфликтует)
+bs_path = "app/src/main/cpp/samp/vendor/RakNet/BitStream.h"
+if os.path.exists(bs_path):
+    os.remove(bs_path)
+    print(f"Removed {bs_path}")
+
+# 3. RakClient.h
 write("app/src/main/cpp/samp/vendor/RakNet/RakClient.h", """
 #ifndef RAKNET_RAKCLIENT_H
 #define RAKNET_RAKCLIENT_H
-#include "BitStream.h"
 namespace RakNet {
+    class BitStream;
     class RakClient {
     public:
         RakClient(){}
@@ -70,7 +93,7 @@ namespace RakNet {
 #endif
 """)
 
-# 3. PlayerTabList наследуется от Widget
+# 4. PlayerTabList
 write("app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h", """
 #ifndef SAMP_PLAYERTABLIST_H
 #define SAMP_PLAYERTABLIST_H
@@ -93,14 +116,10 @@ public:
 #endif
 """)
 
-# 4. INVALID_SOCKET в Network.h
-prepend("app/src/main/cpp/samp/voice_new/Network.h",
-    "#ifndef INVALID_SOCKET\n#define INVALID_SOCKET (-1)\n#endif\n")
-
 # 5. RGBA.h fix
 rgba = "app/src/main/cpp/samp/game/rgba.h"
 RGBA = "app/src/main/cpp/samp/game/RGBA.h"
 if os.path.exists(rgba) and not os.path.exists(RGBA):
     shutil.copy(rgba, RGBA)
 
-print("All files created!")
+print("All done!")
