@@ -22,7 +22,7 @@ private:
 public:
     PlayerTabList() {}
     ~PlayerTabList() {}
-    void render() override {}
+    void render() {}
     void toggle() { m_visible = !m_visible; }
     void show() { m_visible = true; }
     void hide() { m_visible = false; }
