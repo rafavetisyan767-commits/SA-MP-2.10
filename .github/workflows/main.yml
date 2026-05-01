@@ -19,10 +19,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create helper script
+      - name: Auto-Configure KTA Games
         run: |
-          cat > /tmp/setup.py << 'EOF'
-          import os, shutil
+          python3 << 'PYEOF'
+          import os
 
           def write(path, content):
               os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -30,119 +30,136 @@ jobs:
                   f.write(content)
 
           write("app/src/main/cpp/samp/gui/samp_widgets/playerTabList.h", """
-          #pragma once
-          #include <string>
-          class PlayerTabList {
-          private:
-              bool m_visible = false;
-              float m_minW=0,m_minH=0,m_maxW=9999,m_maxH=9999;
-          public:
-              PlayerTabList(){}
-              ~PlayerTabList(){}
-              void render(){}
-              void toggle(){m_visible=!m_visible;}
-              void show(){m_visible=true;}
-              void hide(){m_visible=false;}
-              bool visible() const {return m_visible;}
-              bool isVisible() const {return m_visible;}
-              void setVisible(bool v){m_visible=v;}
-              void setMinSize(float w,float h){m_minW=w;m_minH=h;}
-              void setMaxSize(float w,float h){m_maxW=w;m_maxH=h;}
-              void setSize(float w,float h){}
-              void setPos(float x,float y){}
-              void update(){}
-          };
-          """)
+#pragma once
+#include <string>
+#include <vector>
+
+class PlayerTabList {
+private:
+    bool m_visible = false;
+    float m_minW = 0, m_minH = 0;
+    float m_maxW = 9999, m_maxH = 9999;
+public:
+    PlayerTabList() {}
+    ~PlayerTabList() {}
+    void render() {}
+    void toggle() { m_visible = !m_visible; }
+    void show() { m_visible = true; }
+    void hide() { m_visible = false; }
+    bool visible() const { return m_visible; }
+    bool isVisible() const { return m_visible; }
+    void setVisible(bool v) { m_visible = v; }
+    void setMinSize(float w, float h) { m_minW = w; m_minH = h; }
+    void setMaxSize(float w, float h) { m_maxW = w; m_maxH = h; }
+    void setSize(float w, float h) {}
+    void setPos(float x, float y) {}
+    void update() {}
+};
+""")
 
           write("app/src/main/cpp/samp/vendor/RakNet/BitStream.h", """
-          #pragma once
-          #include <cstdint>
-          #include <cstring>
-          namespace RakNet {
-              class BitStream {
-              public:
-                  BitStream(){}
-                  BitStream(unsigned char* data,unsigned int len,bool copy){}
-                  ~BitStream(){}
-                  void Reset(){}
-                  void Write(bool v){}
-                  void Write(unsigned char v){}
-                  void Write(int v){}
-                  void Write(unsigned int v){}
-                  void Write(float v){}
-                  void Write(const char* v,int len){}
-                  bool Read(bool &v){v=false;return false;}
-                  bool Read(unsigned char &v){v=0;return false;}
-                  bool Read(int &v){v=0;return false;}
-                  bool Read(unsigned int &v){v=0;return false;}
-                  bool Read(float &v){v=0.0f;return false;}
-                  unsigned int GetNumberOfBitsUsed() const {return 0;}
-                  unsigned int GetNumberOfBytesUsed() const {return 0;}
-                  unsigned char* GetData() const {return nullptr;}
-                  void SetWriteOffset(unsigned int o){}
-                  void SetReadOffset(unsigned int o){}
-                  unsigned int GetReadOffset() const {return 0;}
-                  unsigned int GetWriteOffset() const {return 0;}
-              };
-          }
-          """)
+#pragma once
+#include <cstdint>
+#include <cstring>
+
+namespace RakNet {
+    class BitStream {
+    public:
+        BitStream() {}
+        BitStream(unsigned char* data, unsigned int lengthInBytes, bool copyData) {}
+        ~BitStream() {}
+        void Reset() {}
+        void Write(bool val) {}
+        void Write(unsigned char val) {}
+        void Write(int val) {}
+        void Write(unsigned int val) {}
+        void Write(float val) {}
+        void Write(const char* val, int len) {}
+        bool Read(bool &val) { val = false; return false; }
+        bool Read(unsigned char &val) { val = 0; return false; }
+        bool Read(int &val) { val = 0; return false; }
+        bool Read(unsigned int &val) { val = 0; return false; }
+        bool Read(float &val) { val = 0.0f; return false; }
+        unsigned int GetNumberOfBitsUsed() const { return 0; }
+        unsigned int GetNumberOfBytesUsed() const { return 0; }
+        unsigned char* GetData() const { return nullptr; }
+        void SetWriteOffset(unsigned int offset) {}
+        void SetReadOffset(unsigned int offset) {}
+        unsigned int GetReadOffset() const { return 0; }
+        unsigned int GetWriteOffset() const { return 0; }
+    };
+}
+""")
 
           write("app/src/main/cpp/samp/vendor/RakNet/RakClient.h", """
-          #pragma once
-          #include "BitStream.h"
-          namespace RakNet {
-              class RakClient {
-              public:
-                  RakClient(){}
-                  ~RakClient(){}
-                  bool Connect(const char* host,unsigned short port,unsigned short cp,unsigned int d,int t){return false;}
-                  void Disconnect(unsigned int d){}
-                  bool IsConnected() const {return false;}
-                  bool Send(const BitStream* bs,int p,int r,char o){return false;}
-                  bool Send(const char* d,int l,int p,int r,char o){return false;}
-              };
-          }
-          """)
+#pragma once
+#include "BitStream.h"
+namespace RakNet {
+    class RakClient {
+    public:
+        RakClient() {}
+        ~RakClient() {}
+        bool Connect(const char* host, unsigned short port,
+                     unsigned short clientPort,
+                     unsigned int depreciated,
+                     int threadSleepTimer) { return false; }
+        void Disconnect(unsigned int blockDuration) {}
+        bool IsConnected() const { return false; }
+        bool Send(const BitStream* bs, int priority,
+                  int reliability, char orderingChannel) { return false; }
+        bool Send(const char* data, int length, int priority,
+                  int reliability, char orderingChannel) { return false; }
+    };
+}
+""")
 
           write("app/src/main/cpp/samp/vendor/RakNet/RakNetTypes.h", """
-          #pragma once
-          #include <cstdint>
-          namespace RakNet {
-              typedef uint64_t RakNetGUID;
-              typedef unsigned short SystemIndex;
-              struct SystemAddress { const char* ToString() const {return "";} };
-              struct Packet { unsigned char* data; unsigned int length; SystemAddress systemAddress; };
-          }
-          """)
+#pragma once
+#include <cstdint>
+namespace RakNet {
+    typedef uint64_t RakNetGUID;
+    typedef unsigned short SystemIndex;
+    struct SystemAddress {
+        const char* ToString() const { return ""; }
+    };
+    struct Packet {
+        unsigned char* data;
+        unsigned int length;
+        SystemAddress systemAddress;
+    };
+}
+""")
 
           write("app/src/main/cpp/samp/vendor/RakNet/RakPeerInterface.h", """
-          #pragma once
-          #include "BitStream.h"
-          #include "RakNetTypes.h"
-          namespace RakNet {
-              class RakPeerInterface {
-              public:
-                  static RakPeerInterface* GetInstance(){return nullptr;}
-                  virtual ~RakPeerInterface(){}
-              };
-          }
-          """)
+#pragma once
+#include "BitStream.h"
+#include "RakNetTypes.h"
+namespace RakNet {
+    class RakPeerInterface {
+    public:
+        static RakPeerInterface* GetInstance() { return nullptr; }
+        virtual ~RakPeerInterface() {}
+    };
+}
+""")
 
+          # RGBA.h fix
           rgba = "app/src/main/cpp/samp/game/rgba.h"
           RGBA = "app/src/main/cpp/samp/game/RGBA.h"
           if os.path.exists(rgba) and not os.path.exists(RGBA):
+              import shutil
               shutil.copy(rgba, RGBA)
 
-          print("All files created!")
-          EOF
+          print("All files created successfully!")
+          PYEOF
 
-      - name: Auto-Configure KTA Games
-        run: |
-          python3 /tmp/setup.py
-
+          # Замена IP
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/127\.0\.0\.1/141.94.184.104/g'
+
+          # Замена порта
           find . -type f \( -name "*.h" -o -name "*.cpp" \) | xargs sed -i 's/\b7777\b/1341/g'
 
+          # Замена названия
           if [ -f app/src/main/res/values/strings.xml ]; then
             sed -i 's/SA-MP/KTA Games/g' app/src/main/res/values/strings.xml
           fi
